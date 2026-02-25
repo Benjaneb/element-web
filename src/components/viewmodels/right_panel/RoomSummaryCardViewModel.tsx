@@ -212,7 +212,7 @@ export function useRoomSummaryCardViewModel(
 
     const onRoomExportClick = async (): Promise<void> => {
         Modal.createDialog(ExportDialog, {
-            room,
+            target: room,
         });
     };
 

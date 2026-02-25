@@ -7,8 +7,8 @@ Please see LICENSE files in the repository root for full details.
 */
 
 import React, { type JSX, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import { type Room } from "matrix-js-sdk/src/matrix";
 import { logger } from "matrix-js-sdk/src/logger";
+import { type ReadReceipt } from "matrix-js-sdk/src/models/read-receipt";
 
 import { _t } from "../../../languageHandler";
 import BaseDialog from "./BaseDialog";
@@ -36,7 +36,7 @@ import ChatExport from "../../../customisations/ChatExport";
 import { validateNumberInRange } from "../../../utils/validate";
 
 interface IProps {
-    room: Room;
+    target: ReadReceipt<any, any>;
     onFinished(this: void, doExport?: boolean): void;
 }
 
@@ -81,7 +81,7 @@ const useExportFormState = (): ExportConfig => {
     };
 };
 
-const ExportDialog: React.FC<IProps> = ({ room, onFinished }) => {
+const ExportDialog: React.FC<IProps> = ({ target, onFinished }) => {
     const {
         exportFormat,
         exportType,
@@ -119,13 +119,13 @@ const ExportDialog: React.FC<IProps> = ({ room, onFinished }) => {
         };
         switch (exportFormat) {
             case ExportFormat.Html:
-                setExporter(new HTMLExporter(room, ExportType[exportType], exportOptions, setExportProgressText));
+                setExporter(new HTMLExporter(target, ExportType[exportType], exportOptions, setExportProgressText));
                 break;
             case ExportFormat.Json:
-                setExporter(new JSONExporter(room, ExportType[exportType], exportOptions, setExportProgressText));
+                setExporter(new JSONExporter(target, ExportType[exportType], exportOptions, setExportProgressText));
                 break;
             case ExportFormat.PlainText:
-                setExporter(new PlainTextExporter(room, ExportType[exportType], exportOptions, setExportProgressText));
+                setExporter(new PlainTextExporter(target, ExportType[exportType], exportOptions, setExportProgressText));
                 break;
             default:
                 logger.error("Unknown export format");
