@@ -49,7 +49,7 @@ export default class HTMLExporter extends Exporter {
     ) {
         super(room, exportType, exportOptions, setProgressText);
         this.avatars = new Map<string, boolean>();
-        this.permalinkCreator = new RoomPermalinkCreator(this.room);
+        this.permalinkCreator = new RoomPermalinkCreator(this.target);
         this.totalSize = 0;
         this.mediaOmitText = !this.exportOptions.attachmentsIncluded
             ? _t("export_chat|media_omitted")
@@ -58,7 +58,7 @@ export default class HTMLExporter extends Exporter {
 
     protected async getRoomAvatar(): Promise<string> {
         let blob: Blob | undefined = undefined;
-        const avatarUrl = Avatar.avatarUrlForRoom(this.room, 32, 32, "crop");
+        const avatarUrl = Avatar.avatarUrlForRoom(this.target, 32, 32, "crop");
         const avatarPath = "room.png";
         if (avatarUrl) {
             try {
@@ -71,7 +71,7 @@ export default class HTMLExporter extends Exporter {
             }
         }
         const avatar = (
-            <BaseAvatar size="32px" name={this.room.name} title={this.room.name} url={blob ? avatarPath : ""} />
+            <BaseAvatar size="32px" name={this.getTargetName()} title={this.getTargetName()} url={blob ? avatarPath : ""} />
         );
         return renderToStaticMarkup(avatar);
     }
@@ -79,11 +79,11 @@ export default class HTMLExporter extends Exporter {
     protected async wrapHTML(content: string, currentPage: number, nbPages: number): Promise<string> {
         const roomAvatar = await this.getRoomAvatar();
         const exportDate = formatFullDateNoDayNoTime(new Date());
-        const creator = this.room.currentState.getStateEvents(EventType.RoomCreate, "")?.getSender();
-        const creatorName = (creator ? this.room.getMember(creator)?.rawDisplayName : creator) || creator;
-        const exporter = this.room.client.getSafeUserId();
-        const exporterName = this.room.getMember(exporter)?.rawDisplayName;
-        const topic = this.room.currentState.getStateEvents(EventType.RoomTopic, "")?.getContent()?.topic || "";
+        const creator = this.target.currentState.getStateEvents(EventType.RoomCreate, "")?.getSender();
+        const creatorName = (creator ? this.target.getMember(creator)?.rawDisplayName : creator) || creator;
+        const exporter = this.target.client.getSafeUserId();
+        const exporterName = this.target.getMember(exporter)?.rawDisplayName;
+        const topic = this.target.currentState.getStateEvents(EventType.RoomTopic, "")?.getContent()?.topic || "";
 
         const safeCreatedText = escapeHtml(
             _t("export_chat|creator_summary", {
@@ -91,7 +91,7 @@ export default class HTMLExporter extends Exporter {
             }),
         );
         const safeExporter = escapeHtml(exporter);
-        const safeRoomName = escapeHtml(this.room.name);
+        const safeTargetName = escapeHtml(this.getTargetName());
         const safeTopic = escapeHtml(topic);
         const safeExportedText = renderToStaticMarkup(
             <p>
@@ -101,7 +101,7 @@ export default class HTMLExporter extends Exporter {
                         exportDate,
                     },
                     {
-                        roomName: () => <strong>{safeRoomName}</strong>,
+                        roomName: () => <strong>{safeTargetName}</strong>,
                         exporterDetails: () => (
                             <a
                                 href={`https://matrix.to/#/${encodeURIComponent(exporter)}`}
@@ -169,10 +169,10 @@ export default class HTMLExporter extends Exporter {
                                     <div
                                         dir="auto"
                                         class="mx_RoomHeader_info"
-                                        title="${safeRoomName}"
+                                        title="${safeTargetName}"
                                     >
                                         <span class="mx_RoomHeader_truncated mx_lineClamp">
-                                            ${safeRoomName}
+                                            ${safeTargetName}
                                         </span>
                                     </div>
                                 </div>
@@ -200,7 +200,7 @@ export default class HTMLExporter extends Exporter {
                                         currentPage == 0
                                             ? `<div class="mx_NewRoomIntro">
                                             ${roomAvatar}
-                                            <h2> ${safeRoomName} </h2>
+                                            <h2> ${safeTargetName} </h2>
                                             <p> ${safeCreatedText} <br/><br/> ${safeExportedText} </p>
                                             <br/>
                                             <p> ${safeTopicText} </p>
@@ -270,7 +270,7 @@ export default class HTMLExporter extends Exporter {
             <div className="mx_Export_EventWrapper" id={mxEv.getId()}>
                 {/* Export rendering uses an isolated root, so provide I18nContext explicitly. */}
                 <I18nContext.Provider value={window.mxModuleApi.i18n}>
-                    <MatrixClientContext.Provider value={this.room.client}>
+                    <MatrixClientContext.Provider value={this.target.client}>
                         <SDKContext.Provider value={SdkContextClass.instance}>
                             <TooltipProvider>
                                 <EventTile
@@ -403,7 +403,7 @@ export default class HTMLExporter extends Exporter {
             // TODO: Handle callEvent errors
             logger.error(e);
             eventTile = await this.getEventTileMarkup(
-                this.createModifiedEvent(textForEvent(mxEv, this.room.client), mxEv, false),
+                this.createModifiedEvent(textForEvent(mxEv, this.target.client), mxEv, false),
                 joined,
             );
         }
@@ -430,12 +430,12 @@ export default class HTMLExporter extends Exporter {
                 true,
             );
             if (this.cancelled) return this.cleanUp();
-            if (!haveRendererForEvent(event, this.room.client, false)) continue;
+            if (!haveRendererForEvent(event, this.target.client, false)) continue;
 
             content += this.needsDateSeparator(event, prevEvent) ? this.getDateSeparator(event) : "";
             const shouldBeJoined =
                 !this.needsDateSeparator(event, prevEvent) &&
-                shouldFormContinuation(prevEvent, event, this.room.client, false);
+                shouldFormContinuation(prevEvent, event, this.target.client, false);
             const body = await this.createMessageBody(event, shouldBeJoined);
             this.totalSize += new TextEncoder().encode(body).byteLength;
             content += body;

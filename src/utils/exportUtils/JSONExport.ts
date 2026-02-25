@@ -34,13 +34,13 @@ export default class JSONExporter extends Exporter {
 
     protected createJSONString(): string {
         const exportDate = formatFullDateNoDayNoTime(new Date());
-        const creator = this.room.currentState.getStateEvents(EventType.RoomCreate, "")?.getSender();
-        const creatorName = (creator && this.room?.getMember(creator)?.rawDisplayName) || creator;
-        const topic = this.room.currentState.getStateEvents(EventType.RoomTopic, "")?.getContent()?.topic || "";
-        const exporter = this.room.client.getUserId()!;
-        const exporterName = this.room?.getMember(exporter)?.rawDisplayName || exporter;
+        const creator = this.target.currentState.getStateEvents(EventType.RoomCreate, "")?.getSender();
+        const creatorName = (creator && this.target?.getMember(creator)?.rawDisplayName) || creator;
+        const topic = this.target.currentState.getStateEvents(EventType.RoomTopic, "")?.getContent()?.topic || "";
+        const exporter = this.target.client.getUserId()!;
+        const exporterName = this.target?.getMember(exporter)?.rawDisplayName || exporter;
         const jsonObject = {
-            room_name: this.room.name,
+            room_name: this.getTargetName(),
             room_creator: creatorName,
             topic,
             export_date: exportDate,
@@ -81,7 +81,7 @@ export default class JSONExporter extends Exporter {
                 true,
             );
             if (this.cancelled) return this.cleanUp();
-            if (!haveRendererForEvent(event, this.room.client, false)) continue;
+            if (!haveRendererForEvent(event, this.target.client, false)) continue;
             this.messages.push(await this.getJSONString(event));
         }
         return this.createJSONString();

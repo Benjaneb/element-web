@@ -6,11 +6,12 @@ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Com
 Please see LICENSE files in the repository root for full details.
 */
 
-import { Direction, type MatrixEvent, type Relations, type Room } from "matrix-js-sdk/src/matrix";
+import { Direction, type MatrixEvent, type Relations, Room } from "matrix-js-sdk/src/matrix";
 import { type EventType, type MediaEventContent, type RelationType } from "matrix-js-sdk/src/types";
 import { saveAs } from "file-saver";
 import { logger } from "matrix-js-sdk/src/logger";
 import sanitizeFilename from "sanitize-filename";
+import { type ReadReceipt } from "matrix-js-sdk/src/models/read-receipt";
 
 import { ExportType, type IExportOptions } from "./exportUtils";
 import { decryptFile } from "../DecryptFile";
@@ -39,7 +40,7 @@ export default abstract class Exporter {
     protected cancelled = false;
 
     protected constructor(
-        protected room: Room,
+        protected target: ReadReceipt<any, any>,
         protected exportType: ExportType,
         protected exportOptions: IExportOptions,
         protected setProgressText: React.Dispatch<React.SetStateAction<string>>,
@@ -77,13 +78,20 @@ export default abstract class Exporter {
         this.files.push(file);
     }
 
+    protected getTargetName(): string {
+        return this.target instanceof Room
+            ? this.target.name
+            : "Thread";
+    }
+
     protected makeFileNameNoExtension(brand = "matrix"): string {
         // First try to use the real name of the room, then a translated copy of a generic name,
         // then finally hardcoded default to guarantee we'll have a name.
-        const safeRoomName = sanitizeFilename(this.room.name ?? _t("common|unnamed_room")).trim() || "Unnamed Room";
+        const targetName = this.getTargetName();
+        const safeTargetName = sanitizeFilename(targetName ?? _t("common|unnamed_room")).trim() || "Unnamed Room";
         const safeDate = formatFullDateNoDayISO(new Date()).replace(/:/g, "-"); // ISO format automatically removes a lot of stuff for us
         const safeBrand = sanitizeFilename(brand);
-        return `${safeBrand} - ${safeRoomName} - Chat Export - ${safeDate}`;
+        return `${safeBrand} - ${safeTargetName} - Chat Export - ${safeDate}`;
     }
 
     protected async downloadZIP(): Promise<string | void> {
@@ -119,7 +127,7 @@ export default abstract class Exporter {
     }
 
     protected setEventMetadata(event: MatrixEvent): MatrixEvent {
-        event.setMetadata(this.room.currentState, false);
+        event.setMetadata(this.target.currentState, false);
         return event;
     }
 
@@ -138,19 +146,19 @@ export default abstract class Exporter {
     }
 
     protected async getRequiredEvents(): Promise<MatrixEvent[]> {
-        const eventMapper = this.room.client.getEventMapper();
+        const eventMapper = this.target.client.getEventMapper();
 
         let prevToken: string | null = null;
 
         let events: MatrixEvent[] = [];
         if (this.exportType === ExportType.Timeline) {
-            events = this.room.getLiveTimeline().getEvents();
+            events = this.target.getLiveTimeline().getEvents();
         } else {
             let limit = this.getLimit();
             while (limit) {
                 const eventsPerCrawl = Math.min(limit, 1000);
-                const res = await this.room.client.createMessagesRequest(
-                    this.room.roomId,
+                const res = await this.target.client.createMessagesRequest(
+                    this.target.roomId,
                     prevToken,
                     eventsPerCrawl,
                     Direction.Backward,
@@ -200,7 +208,7 @@ export default abstract class Exporter {
         const decryptionPromises = events
             .filter((event) => event.isEncrypted())
             .map((event) => {
-                return this.room.client.decryptEventIfNeeded(event, { emit: false });
+                return this.target.client.decryptEventIfNeeded(event, { emit: false });
             });
 
         // Wait for all the events to get decrypted.
@@ -311,7 +319,7 @@ export default abstract class Exporter {
         relationType: RelationType | string,
         eventType: EventType | string,
     ): Relations | undefined => {
-        return this.room.getUnfilteredTimelineSet().relations.getChildEventsForEvent(eventId, relationType, eventType);
+        return this.target.getUnfilteredTimelineSet().relations.getChildEventsForEvent(eventId, relationType, eventType);
     };
 
     public abstract export(): Promise<void>;
