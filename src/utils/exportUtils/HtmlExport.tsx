@@ -49,7 +49,7 @@ export default class HTMLExporter extends Exporter {
     ) {
         super(target, exportType, exportOptions, setProgressText);
         this.avatars = new Map<string, boolean>();
-        this.permalinkCreator = new RoomPermalinkCreator(this.target);
+        this.permalinkCreator = new RoomPermalinkCreator(this.getRoom());
         this.totalSize = 0;
         this.mediaOmitText = !this.exportOptions.attachmentsIncluded
             ? _t("export_chat|media_omitted")
