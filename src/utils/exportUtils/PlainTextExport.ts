@@ -6,13 +6,13 @@ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Com
 Please see LICENSE files in the repository root for full details.
 */
 
-import { type Room, type IContent, type MatrixEvent } from "matrix-js-sdk/src/matrix";
+import { type IContent, type MatrixEvent } from "matrix-js-sdk/src/matrix";
 import { logger } from "matrix-js-sdk/src/logger";
 
 import type React from "react";
 import Exporter from "./Exporter";
 import { _t } from "../../languageHandler";
-import { type ExportType, type IExportOptions } from "./exportUtils";
+import { type Target, type ExportType, type IExportOptions } from "./exportUtils";
 import { textForEvent } from "../../TextForEvent";
 import { haveRendererForEvent } from "../../events/EventTileFactory";
 import SettingsStore from "../../settings/SettingsStore";
@@ -23,12 +23,12 @@ export default class PlainTextExporter extends Exporter {
     protected mediaOmitText: string;
 
     public constructor(
-        room: Room,
+        target: Target,
         exportType: ExportType,
         exportOptions: IExportOptions,
         setProgressText: React.Dispatch<React.SetStateAction<string>>,
     ) {
-        super(room, exportType, exportOptions, setProgressText);
+        super(target, exportType, exportOptions, setProgressText);
         this.totalSize = 0;
         this.mediaOmitText = !this.exportOptions.attachmentsIncluded
             ? _t("export_chat|media_omitted")

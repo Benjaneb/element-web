@@ -8,7 +8,7 @@ Please see LICENSE files in the repository root for full details.
 
 import React, { type JSX } from "react";
 import { createRoot } from "react-dom/client";
-import { type Room, MatrixEvent, EventType, MsgType } from "matrix-js-sdk/src/matrix";
+import { MatrixEvent, EventType, MsgType, Room } from "matrix-js-sdk/src/matrix";
 import { renderToStaticMarkup } from "react-dom/server";
 import { logger } from "matrix-js-sdk/src/logger";
 import escapeHtml from "escape-html";
@@ -26,7 +26,7 @@ import * as Avatar from "../../Avatar";
 import EventTile from "../../components/views/rooms/EventTile";
 import DateSeparator from "../../components/views/messages/DateSeparator";
 import BaseAvatar from "../../components/views/avatars/BaseAvatar";
-import { type ExportType, type IExportOptions } from "./exportUtils";
+import { type Target, type ExportType, type IExportOptions } from "./exportUtils";
 import MatrixClientContext from "../../contexts/MatrixClientContext";
 import getExportCSS from "./exportCSS";
 import { textForEvent } from "../../TextForEvent";
@@ -42,12 +42,12 @@ export default class HTMLExporter extends Exporter {
     protected mediaOmitText: string;
 
     public constructor(
-        room: Room,
+        target: Target,
         exportType: ExportType,
         exportOptions: IExportOptions,
         setProgressText: React.Dispatch<React.SetStateAction<string>>,
     ) {
-        super(room, exportType, exportOptions, setProgressText);
+        super(target, exportType, exportOptions, setProgressText);
         this.avatars = new Map<string, boolean>();
         this.permalinkCreator = new RoomPermalinkCreator(this.target);
         this.totalSize = 0;
@@ -58,7 +58,7 @@ export default class HTMLExporter extends Exporter {
 
     protected async getRoomAvatar(): Promise<string> {
         let blob: Blob | undefined = undefined;
-        const avatarUrl = Avatar.avatarUrlForRoom(this.target, 32, 32, "crop");
+        const avatarUrl = Avatar.avatarUrlForRoom(this.getRoom(), 32, 32, "crop");
         const avatarPath = "room.png";
         if (avatarUrl) {
             try {
@@ -70,8 +70,9 @@ export default class HTMLExporter extends Exporter {
                 logger.log("Failed to fetch room's avatar" + err);
             }
         }
+        const name = this.getTargetName();
         const avatar = (
-            <BaseAvatar size="32px" name={this.getTargetName()} title={this.getTargetName()} url={blob ? avatarPath : ""} />
+            <BaseAvatar size="32px" name={name} title={name} url={blob ? avatarPath : ""} />
         );
         return renderToStaticMarkup(avatar);
     }
@@ -79,11 +80,12 @@ export default class HTMLExporter extends Exporter {
     protected async wrapHTML(content: string, currentPage: number, nbPages: number): Promise<string> {
         const roomAvatar = await this.getRoomAvatar();
         const exportDate = formatFullDateNoDayNoTime(new Date());
-        const creator = this.target.currentState.getStateEvents(EventType.RoomCreate, "")?.getSender();
-        const creatorName = (creator ? this.target.getMember(creator)?.rawDisplayName : creator) || creator;
+        const roomState = this.getRoomState();
+        const creator = roomState.getStateEvents(EventType.RoomCreate, "")?.getSender();
+        const creatorName = (creator ? roomState.getMember(creator)?.rawDisplayName : creator) || creator;
         const exporter = this.target.client.getSafeUserId();
-        const exporterName = this.target.getMember(exporter)?.rawDisplayName;
-        const topic = this.target.currentState.getStateEvents(EventType.RoomTopic, "")?.getContent()?.topic || "";
+        const exporterName = roomState.getMember(exporter)?.rawDisplayName;
+        const topic = roomState.getStateEvents(EventType.RoomTopic, "")?.getContent()?.topic || "";
 
         const safeCreatedText = escapeHtml(
             _t("export_chat|creator_summary", {

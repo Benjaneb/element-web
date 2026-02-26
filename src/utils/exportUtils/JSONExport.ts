@@ -6,12 +6,12 @@ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Com
 Please see LICENSE files in the repository root for full details.
 */
 
-import { type Room, type IEvent, type MatrixEvent, EventType } from "matrix-js-sdk/src/matrix";
+import { type IEvent, type MatrixEvent, EventType } from "matrix-js-sdk/src/matrix";
 import { logger } from "matrix-js-sdk/src/logger";
 
 import Exporter from "./Exporter";
 import { formatFullDateNoDayNoTime } from "../../DateUtils";
-import { type ExportType, type IExportOptions } from "./exportUtils";
+import { type Target, type ExportType, type IExportOptions } from "./exportUtils";
 import { _t } from "../../languageHandler";
 import { haveRendererForEvent } from "../../events/EventTileFactory";
 
@@ -20,12 +20,12 @@ export default class JSONExporter extends Exporter {
     protected messages: Record<string, any>[] = [];
 
     public constructor(
-        room: Room,
+        target: Target,
         exportType: ExportType,
         exportOptions: IExportOptions,
         setProgressText: React.Dispatch<React.SetStateAction<string>>,
     ) {
-        super(room, exportType, exportOptions, setProgressText);
+        super(target, exportType, exportOptions, setProgressText);
     }
 
     public get destinationFileName(): string {
@@ -34,11 +34,12 @@ export default class JSONExporter extends Exporter {
 
     protected createJSONString(): string {
         const exportDate = formatFullDateNoDayNoTime(new Date());
-        const creator = this.target.currentState.getStateEvents(EventType.RoomCreate, "")?.getSender();
-        const creatorName = (creator && this.target?.getMember(creator)?.rawDisplayName) || creator;
-        const topic = this.target.currentState.getStateEvents(EventType.RoomTopic, "")?.getContent()?.topic || "";
+        const roomState = this.getRoomState();
+        const creator = roomState.getStateEvents(EventType.RoomCreate, "")?.getSender();
+        const creatorName = (creator && roomState.getMember(creator)?.rawDisplayName) || creator;
+        const topic = roomState.getStateEvents(EventType.RoomTopic, "")?.getContent()?.topic || "";
         const exporter = this.target.client.getUserId()!;
-        const exporterName = this.target?.getMember(exporter)?.rawDisplayName || exporter;
+        const exporterName = roomState.getMember(exporter)?.rawDisplayName || exporter;
         const jsonObject = {
             room_name: this.getTargetName(),
             room_creator: creatorName,

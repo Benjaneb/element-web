@@ -6,14 +6,13 @@ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Com
 Please see LICENSE files in the repository root for full details.
 */
 
-import { Direction, type MatrixEvent, type Relations, Room } from "matrix-js-sdk/src/matrix";
+import { Direction, type MatrixEvent, type Relations, Room, EventTimeline, RoomState } from "matrix-js-sdk/src/matrix";
 import { type EventType, type MediaEventContent, type RelationType } from "matrix-js-sdk/src/types";
 import { saveAs } from "file-saver";
 import { logger } from "matrix-js-sdk/src/logger";
 import sanitizeFilename from "sanitize-filename";
-import { type ReadReceipt } from "matrix-js-sdk/src/models/read-receipt";
 
-import { ExportType, type IExportOptions } from "./exportUtils";
+import { ExportType, Target, type IExportOptions } from "./exportUtils";
 import { decryptFile } from "../DecryptFile";
 import { mediaFromContent } from "../../customisations/Media";
 import { formatFullDateNoDay, formatFullDateNoDayISO } from "../../DateUtils";
@@ -40,7 +39,7 @@ export default abstract class Exporter {
     protected cancelled = false;
 
     protected constructor(
-        protected target: ReadReceipt<any, any>,
+        protected target: Target,
         protected exportType: ExportType,
         protected exportOptions: IExportOptions,
         protected setProgressText: React.Dispatch<React.SetStateAction<string>>,
@@ -81,7 +80,7 @@ export default abstract class Exporter {
     protected getTargetName(): string {
         return this.target instanceof Room
             ? this.target.name
-            : "Thread";
+            : "Thread in " + this.target.room.name;
     }
 
     protected makeFileNameNoExtension(brand = "matrix"): string {
@@ -126,8 +125,20 @@ export default abstract class Exporter {
         saveAs(content, fileName);
     }
 
+    protected getRoom(): Room {
+        return this.target instanceof Room
+            ? this.target
+            : this.target.room;
+    }
+
+    protected getRoomState(): RoomState {
+        return this.target instanceof Room
+            ? this.target.getLiveTimeline().getState(EventTimeline.FORWARDS)!
+            : this.target.roomState;
+    }
+
     protected setEventMetadata(event: MatrixEvent): MatrixEvent {
-        event.setMetadata(this.target.currentState, false);
+        event.setMetadata(this.getRoomState(), false);
         return event;
     }
 
@@ -152,7 +163,9 @@ export default abstract class Exporter {
 
         let events: MatrixEvent[] = [];
         if (this.exportType === ExportType.Timeline) {
-            events = this.target.getLiveTimeline().getEvents();
+            events = this.target instanceof Room
+                ? this.target.getLiveTimeline().getEvents()
+                : this.target.liveTimeline.getEvents();
         } else {
             let limit = this.getLimit();
             while (limit) {
