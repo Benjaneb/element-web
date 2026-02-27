@@ -8,6 +8,7 @@ Please see LICENSE files in the repository root for full details.
 
 import React, { type JSX } from "react";
 import { LinkIcon, VisibilityOnIcon } from "@vector-im/compound-design-tokens/assets/web/icons";
+import ExportArchiveIcon from "@vector-im/compound-design-tokens/assets/web/icons/export-archive";
 
 import { RovingAccessibleButton } from "../../../../accessibility/RovingTabIndex";
 import Toolbar from "../../../../accessibility/Toolbar";
@@ -17,9 +18,11 @@ import { type ButtonEvent } from "../../elements/AccessibleButton";
 export function EventTileThreadToolbar({
     viewInRoom,
     copyLinkToThread,
+    exportThread,
 }: {
     viewInRoom: (evt: ButtonEvent) => void;
     copyLinkToThread: (evt: ButtonEvent) => void;
+    exportThread: (evt: ButtonEvent) => void;
 }): JSX.Element {
     return (
         <Toolbar className="mx_MessageActionBar" aria-label={_t("timeline|mab|label")} aria-live="off">
@@ -38,6 +41,14 @@ export function EventTileThreadToolbar({
                 key="copy_link_to_thread"
             >
                 <LinkIcon />
+            </RovingAccessibleButton>
+            <RovingAccessibleButton
+                className="mx_MessageActionBar_iconButton"
+                onClick={exportThread}
+                title={_t("timeline|mab|export_thread")}
+                key="export_thread"
+            >
+                <ExportArchiveIcon />
             </RovingAccessibleButton>
         </Toolbar>
     );
