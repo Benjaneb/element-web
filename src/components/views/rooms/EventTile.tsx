@@ -96,6 +96,8 @@ import {
     MessageTimestampViewModel,
     type MessageTimestampViewModelProps,
 } from "../../../viewmodels/message-body/MessageTimestampViewModel.ts";
+import Modal from "../../../Modal";
+import ExportDialog from "../../views/dialogs/ExportDialog";
 
 export type GetRelationsForEvent = (
     eventId: string,
@@ -560,6 +562,16 @@ export class UnwrappedEventTile extends React.Component<EventTileProps, IState> 
         if (!permalinkCreator) return;
         const matrixToUrl = permalinkCreator.forEvent(mxEvent.getId()!);
         await copyPlaintext(matrixToUrl);
+    };
+
+    private exportThread = async (evt: ButtonEvent): Promise<void> => {
+        evt.preventDefault();
+        evt.stopPropagation();
+        const { mxEvent } = this.props;
+        console.log(`[called from 'All threads' sidebar] EventTile::exportThread(), eventId=${mxEvent.getId()}, roomId=${mxEvent.getRoomId()}`);
+
+        // TODO: Replace with creation of arbitrary `ExportDialog`, but adapted to the current Thread
+        Modal.createDialog(ExportDialog);
     };
 
     private onRoomReceipt = (ev: MatrixEvent, room: Room): void => {
@@ -1394,6 +1406,7 @@ export class UnwrappedEventTile extends React.Component<EventTileProps, IState> 
                             <EventTileThreadToolbar
                                 viewInRoom={this.viewInRoom}
                                 copyLinkToThread={this.copyLinkToThread}
+                                exportThread={this.exportThread}
                             />
                         )}
 

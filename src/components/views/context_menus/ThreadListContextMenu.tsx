@@ -9,6 +9,7 @@ Please see LICENSE files in the repository root for full details.
 import React, { useCallback, useEffect } from "react";
 import { type MatrixEvent } from "matrix-js-sdk/src/matrix";
 import { LinkIcon, OverflowHorizontalIcon, VisibilityOnIcon } from "@vector-im/compound-design-tokens/assets/web/icons";
+import ExportArchiveIcon from "@vector-im/compound-design-tokens/assets/web/icons/export-archive";
 
 import { type ButtonEvent } from "../elements/AccessibleButton";
 import dis from "../../../dispatcher/dispatcher";
@@ -21,6 +22,8 @@ import IconizedContextMenu, { IconizedContextMenuOption, IconizedContextMenuOpti
 import { WidgetLayoutStore } from "../../../stores/widgets/WidgetLayoutStore";
 import { MatrixClientPeg } from "../../../MatrixClientPeg";
 import { type ViewRoomPayload } from "../../../dispatcher/payloads/ViewRoomPayload";
+import Modal from "../../../Modal";
+import ExportDialog from "../../views/dialogs/ExportDialog";
 
 export interface ThreadListContextMenuProps {
     mxEvent: MatrixEvent;
@@ -73,6 +76,19 @@ const ThreadListContextMenu: React.FC<ThreadListContextMenuProps> = ({
         [mxEvent, closeThreadOptions, permalinkCreator],
     );
 
+    const exportThread = useCallback(
+        async (evt: ButtonEvent | undefined): Promise<void> => {
+            evt?.preventDefault();
+            evt?.stopPropagation();
+            // TODO: Remove console logging
+            console.log(`[called from 'Thread overview' sidebar] ThreadListContextMenu::exportThread(), eventId=${mxEvent.getId()}, roomId=${mxEvent.getRoomId()}`);
+            // TODO: Replace with creation of arbitrary `ExportDialog`, but adapted to the current Thread
+            Modal.createDialog(ExportDialog);
+            closeThreadOptions();
+        },
+        [mxEvent, closeThreadOptions],
+    );
+
     useEffect(() => {
         onMenuToggle?.(menuDisplayed);
     }, [menuDisplayed, onMenuToggle]);
@@ -116,6 +132,11 @@ const ThreadListContextMenu: React.FC<ThreadListContextMenuProps> = ({
                                 icon={<LinkIcon />}
                             />
                         )}
+                        <IconizedContextMenuOption
+                            onClick={(e) => exportThread(e)}
+                            label={_t("timeline|mab|export_thread")}
+                            icon={<ExportArchiveIcon />}
+                        />
                     </IconizedContextMenuOptionList>
                 </IconizedContextMenu>
             )}
