@@ -3449,6 +3449,7 @@
         "mab": {
             "collapse_reply_chain": "Kollapsa citat",
             "copy_link_thread": "Kopiera länk till tråd",
+            "export_thread": "Exportera tråd",
             "expand_reply_chain": "Expandera citat",
             "label": "Meddelandeåtgärder",
             "view_in_room": "Visa i rum"

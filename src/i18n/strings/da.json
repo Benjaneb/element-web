@@ -3073,6 +3073,7 @@
         "mab": {
             "collapse_reply_chain": "Skjul citater",
             "copy_link_thread": "Kopiér link til tråd",
+            "export_thread": "Eksportér tråd",
             "expand_reply_chain": "Udvid citater",
             "label": "Beskedhandlinger",
             "view_in_room": "Vis i rum"

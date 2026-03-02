@@ -3537,6 +3537,7 @@
         "mab": {
             "collapse_reply_chain": "Skjul sitater",
             "copy_link_thread": "Kopier lenke til tråd",
+            "export_thread": "Eksporter tråd",
             "expand_reply_chain": "Utvid sitater",
             "label": "Meldingshandlinger",
             "view_in_room": "Vis i rom"
