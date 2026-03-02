@@ -490,10 +490,18 @@ class LoggedInView extends React.Component<IProps, IState> {
     Bubbling is irrelevant here as the target is the body element.
     */
     private onReactKeyDown = (ev: React.KeyboardEvent): void => {
-        // events caught while bubbling up on the root element
-        // of this component, so something must be focused.
-        this.onKeyDown(ev);
-    };
+    // If focus is inside the thread panel, let it handle scroll keys itself
+    if (document.activeElement?.closest(".mx_ThreadPanel")) {
+        const roomAction = getKeyBindingsManager().getRoomAction(ev);
+        if (
+            roomAction === KeyBindingAction.ScrollUp ||
+            roomAction === KeyBindingAction.ScrollDown
+        ) {
+            return; // don't intercept, let it reach ThreadPanel's onKeyDown
+        }
+    }
+    this.onKeyDown(ev);
+};
 
     private onNativeKeyDown = (ev: KeyboardEvent): void => {
         // only pass this if there is no focused element.

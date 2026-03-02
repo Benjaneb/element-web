@@ -6,6 +6,9 @@ SPDX-License-Identifier: AGPL-3.0-only OR GPL-3.0-only OR LicenseRef-Element-Com
 Please see LICENSE files in the repository root for full details.
 */
 
+import { getKeyBindingsManager } from "../../KeyBindingsManager";
+import { KeyBindingAction } from "../../accessibility/KeyboardShortcuts";
+
 import React, { useContext, useEffect, useRef, useState } from "react";
 import { type EventTimelineSet, type Room, Thread } from "matrix-js-sdk/src/matrix";
 import { IconButton, Tooltip } from "@vector-im/compound-web";
@@ -164,6 +167,18 @@ const ThreadPanel: React.FC<IProps> = ({ roomId, onClose, permalinkCreator }) =>
     const [room, setRoom] = useState<Room | null>(null);
     const [narrow, setNarrow] = useState<boolean>(false);
 
+    const onKeyDown = (ev: React.KeyboardEvent): void => {
+        const roomAction = getKeyBindingsManager().getRoomAction(ev);
+        if (
+            roomAction === KeyBindingAction.ScrollUp ||
+            roomAction === KeyBindingAction.ScrollDown
+        ) {
+            timelinePanel.current?.handleScrollKey(ev);
+            ev.stopPropagation(); // prevent LoggedInView from also handling it
+            ev.preventDefault();
+        }
+    };
+
     const timelineSet: EventTimelineSet | undefined =
         filterOption === ThreadFilterType.My ? room?.threadsTimelineSets[1] : room?.threadsTimelineSets[0];
     const hasThreads = Boolean(room?.threadsTimelineSets?.[0]?.getLiveTimeline()?.getEvents()?.length);
@@ -191,54 +206,56 @@ const ThreadPanel: React.FC<IProps> = ({ roomId, onClose, permalinkCreator }) =>
             showHiddenEvents={true}
             narrow={narrow}
         >
-            <BaseCard
-                header={_t("common|threads")}
-                id="thread-panel"
-                className="mx_ThreadPanel"
-                ariaLabelledBy="thread-panel-tab"
-                role="tabpanel"
-                onClose={onClose}
-                withoutScrollContainer={true}
-                ref={card}
-                closeButtonRef={closeButonRef}
-            >
-                {hasThreads && <ThreadPanelHeader filterOption={filterOption} setFilterOption={setFilterOption} />}
-                <Measured sensor={card} onMeasurement={setNarrow} />
-                {timelineSet ? (
-                    <TimelinePanel
-                        key={filterOption + ":" + (timelineSet.getFilter()?.filterId ?? roomId)}
-                        ref={timelinePanel}
-                        showReadReceipts={false} // No RR support in thread's list
-                        manageReadReceipts={false} // No RR support in thread's list
-                        manageReadMarkers={false} // No RM support in thread's list
-                        sendReadReceiptOnLoad={false} // No RR support in thread's list
-                        timelineSet={timelineSet}
-                        showUrlPreview={false} // No URL previews at the threads list level
-                        empty={
-                            <EmptyState
-                                Icon={ThreadsIcon}
-                                title={_t("threads|empty_title")}
-                                description={_t("threads|empty_description", {
-                                    replyInThread: _t("action|reply_in_thread"),
-                                })}
-                            />
-                        }
-                        alwaysShowTimestamps={true}
-                        layout={Layout.Group}
-                        hideThreadedMessages={false}
-                        hidden={false}
-                        showReactions={false}
-                        className="mx_RoomView_messagePanel"
-                        membersLoaded={true}
-                        permalinkCreator={permalinkCreator}
-                        disableGrouping={true}
-                    />
-                ) : (
-                    <div className="mx_AutoHideScrollbar">
-                        <Spinner />
-                    </div>
-                )}
-            </BaseCard>
+            <div onKeyDown={onKeyDown}>
+                <BaseCard
+                    header={_t("common|threads")}
+                    id="thread-panel"
+                    className="mx_ThreadPanel"
+                    ariaLabelledBy="thread-panel-tab"
+                    role="tabpanel"
+                    onClose={onClose}
+                    withoutScrollContainer={true}
+                    ref={card}
+                    closeButtonRef={closeButonRef}
+                >
+                    {hasThreads && <ThreadPanelHeader filterOption={filterOption} setFilterOption={setFilterOption} />}
+                    <Measured sensor={card} onMeasurement={setNarrow} />
+                    {timelineSet ? (
+                        <TimelinePanel
+                            key={filterOption + ":" + (timelineSet.getFilter()?.filterId ?? roomId)}
+                            ref={timelinePanel}
+                            showReadReceipts={false} // No RR support in thread's list
+                            manageReadReceipts={false} // No RR support in thread's list
+                            manageReadMarkers={false} // No RM support in thread's list
+                            sendReadReceiptOnLoad={false} // No RR support in thread's list
+                            timelineSet={timelineSet}
+                            showUrlPreview={false} // No URL previews at the threads list level
+                            empty={
+                                <EmptyState
+                                    Icon={ThreadsIcon}
+                                    title={_t("threads|empty_title")}
+                                    description={_t("threads|empty_description", {
+                                        replyInThread: _t("action|reply_in_thread"),
+                                    })}
+                                />
+                            }
+                            alwaysShowTimestamps={true}
+                            layout={Layout.Group}
+                            hideThreadedMessages={false}
+                            hidden={false}
+                            showReactions={false}
+                            className="mx_RoomView_messagePanel"
+                            membersLoaded={true}
+                            permalinkCreator={permalinkCreator}
+                            disableGrouping={true}
+                        />
+                    ) : (
+                        <div className="mx_AutoHideScrollbar">
+                            <Spinner />
+                        </div>
+                    )}
+                </BaseCard>
+            </div>
         </ScopedRoomContextProvider>
     );
 };
