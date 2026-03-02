@@ -78,13 +78,15 @@ const ThreadListContextMenu: React.FC<ThreadListContextMenuProps> = ({
 
     const exportThread = useCallback(
         async (evt: ButtonEvent | undefined): Promise<void> => {
-            evt?.preventDefault();
-            evt?.stopPropagation();
-            // TODO: Remove console logging
-            console.log(`[called from 'Thread overview' sidebar] ThreadListContextMenu::exportThread(), eventId=${mxEvent.getId()}, roomId=${mxEvent.getRoomId()}`);
-            // TODO: Replace with creation of arbitrary `ExportDialog`, but adapted to the current Thread
-            Modal.createDialog(ExportDialog);
-            closeThreadOptions();
+            const thread = mxEvent.getThread();
+            if (thread) {
+                evt?.preventDefault();
+                evt?.stopPropagation();
+                Modal.createDialog(ExportDialog, {
+                    target: thread,
+                });
+                closeThreadOptions();
+            }
         },
         [mxEvent, closeThreadOptions],
     );

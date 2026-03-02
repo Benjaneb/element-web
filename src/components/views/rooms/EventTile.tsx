@@ -565,13 +565,14 @@ export class UnwrappedEventTile extends React.Component<EventTileProps, IState> 
     };
 
     private exportThread = async (evt: ButtonEvent): Promise<void> => {
-        evt.preventDefault();
-        evt.stopPropagation();
-        const { mxEvent } = this.props;
-        console.log(`[called from 'All threads' sidebar] EventTile::exportThread(), eventId=${mxEvent.getId()}, roomId=${mxEvent.getRoomId()}`);
-
-        // TODO: Replace with creation of arbitrary `ExportDialog`, but adapted to the current Thread
-        Modal.createDialog(ExportDialog);
+        const thread = this.props.mxEvent.getThread();
+        if (thread) {
+            evt.preventDefault();
+            evt.stopPropagation();
+            Modal.createDialog(ExportDialog, {
+                target: thread,
+            });
+        }
     };
 
     private onRoomReceipt = (ev: MatrixEvent, room: Room): void => {
