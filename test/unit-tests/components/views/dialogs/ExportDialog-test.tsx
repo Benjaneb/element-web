@@ -44,7 +44,7 @@ describe("<ExportDialog />", () => {
 
     const roomId = "test:test.org";
     const defaultProps = {
-        room: mkStubRoom(roomId, "test", mockClient) as unknown as Room,
+        target: mkStubRoom(roomId, "test", mockClient) as unknown as Room,
         onFinished: jest.fn(),
     };
 
@@ -101,7 +101,7 @@ describe("<ExportDialog />", () => {
             // 4th arg is an component function
             const exportConstructorProps = HTMLExporterMock.mock.calls[0].slice(0, 3);
             expect(exportConstructorProps).toEqual([
-                defaultProps.room,
+                defaultProps.target,
                 ExportType.Timeline,
                 {
                     attachmentsIncluded: false,
@@ -127,7 +127,7 @@ describe("<ExportDialog />", () => {
         // 4th arg is an component function
         const exportConstructorProps = PlainTextExporterMock.mock.calls[0].slice(0, 3);
         expect(exportConstructorProps).toEqual([
-            defaultProps.room,
+            defaultProps.target,
             ExportType.Beginning,
             {
                 attachmentsIncluded: true,

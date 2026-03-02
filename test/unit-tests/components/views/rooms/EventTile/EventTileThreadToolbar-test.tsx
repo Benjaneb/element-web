@@ -15,9 +15,10 @@ import { EventTileThreadToolbar } from "../../../../../../src/components/views/r
 describe("EventTileThreadToolbar", () => {
     const viewInRoom = jest.fn();
     const copyLink = jest.fn();
+    const exportThread = jest.fn();
 
     function renderComponent(props: Partial<ComponentProps<typeof EventTileThreadToolbar>> = {}): RenderResult {
-        return render(<EventTileThreadToolbar viewInRoom={viewInRoom} copyLinkToThread={copyLink} {...props} />);
+        return render(<EventTileThreadToolbar viewInRoom={viewInRoom} copyLinkToThread={copyLink} exportThread={exportThread} {...props} />);
     }
 
     afterEach(() => {
@@ -34,11 +35,15 @@ describe("EventTileThreadToolbar", () => {
 
         const copyBtn = getByLabelText(container, "Copy link to thread");
         const viewInRoomBtn = getByLabelText(container, "View in room");
+        const exportThreadBtn = getByLabelText(container, "Export thread");
 
         await userEvent.click(copyBtn);
         expect(copyLink).toHaveBeenCalledTimes(1);
 
         await userEvent.click(viewInRoomBtn);
         expect(viewInRoom).toHaveBeenCalledTimes(1);
+
+        await userEvent.click(exportThreadBtn);
+        expect(exportThread).toHaveBeenCalledTimes(1);
     });
 });

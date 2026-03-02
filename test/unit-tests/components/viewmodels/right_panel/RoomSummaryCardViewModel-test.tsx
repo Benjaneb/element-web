@@ -154,7 +154,7 @@ describe("useRoomSummaryCardViewModel", () => {
             await act(async () => {
                 await result.current.onRoomExportClick();
             });
-            expect(createDialogSpy).toHaveBeenCalledWith(ExportDialog, { room });
+            expect(createDialogSpy).toHaveBeenCalledWith(ExportDialog, { target: room });
         });
 
         it("should handle room poll history click", async () => {
