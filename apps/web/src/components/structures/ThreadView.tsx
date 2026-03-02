@@ -47,6 +47,7 @@ import Measured from "../views/elements/Measured";
 import PosthogTrackers from "../../PosthogTrackers";
 import { type ButtonEvent } from "../views/elements/AccessibleButton";
 import Spinner from "../views/elements/Spinner";
+import JumpToBottomButton from "../views/rooms/JumpToBottomButton";
 import { type ComposerInsertPayload, ComposerType } from "../../dispatcher/payloads/ComposerInsertPayload";
 import Heading from "../views/typography/Heading";
 import { type ThreadPayload } from "../../dispatcher/payloads/ThreadPayload";
@@ -71,6 +72,7 @@ interface IState {
     editState?: EditorStateTransfer;
     replyToEvent?: MatrixEvent;
     narrow: boolean;
+    atEndOfLiveTimeline?: boolean;
 }
 
 export default class ThreadView extends React.Component<IProps, IState> {
@@ -95,6 +97,7 @@ export default class ThreadView extends React.Component<IProps, IState> {
             layout: SettingsStore.getValue("layout"),
             narrow: false,
             thread,
+            atEndOfLiveTimeline: undefined,
             lastReply: thread?.lastReply((ev: MatrixEvent) => {
                 return ev.isRelation(THREAD_RELATION_TYPE.name) && !ev.status;
             }),
@@ -150,6 +153,13 @@ export default class ThreadView extends React.Component<IProps, IState> {
 
         if (prevProps.room !== this.props.room) {
             RightPanelStore.instance.setCard({ phase: RightPanelPhases.RoomSummary });
+        }
+
+        if (this.timelinePanel.current && this.state.atEndOfLiveTimeline === undefined) {
+            const atEndOfLiveTimeline = this.timelinePanel.current.isAtEndOfLiveTimeline();
+            if (atEndOfLiveTimeline !== undefined) {
+                this.setState({ atEndOfLiveTimeline });
+            }
         }
     }
 
@@ -253,6 +263,7 @@ export default class ThreadView extends React.Component<IProps, IState> {
                 {
                     thread,
                     lastReply: this.threadLastReply,
+                    atEndOfLiveTimeline: undefined,
                 },
                 async () => this.postThreadUpdate(thread),
             );
@@ -300,6 +311,17 @@ export default class ThreadView extends React.Component<IProps, IState> {
 
     private onMeasurement = (narrow: boolean): void => {
         this.setState({ narrow });
+    };
+
+    private onMessageListScroll = (): void => {
+        const atEndOfLiveTimeline = this.timelinePanel.current?.isAtEndOfLiveTimeline() ?? true;
+        if (this.state.atEndOfLiveTimeline !== atEndOfLiveTimeline) {
+            this.setState({ atEndOfLiveTimeline });
+        }
+    };
+
+    private jumpToLiveTimeline = (): void => {
+        this.timelinePanel.current?.jumpToLiveTimeline();
     };
 
     private onKeyDown = (ev: KeyboardEvent): void => {
@@ -386,9 +408,15 @@ export default class ThreadView extends React.Component<IProps, IState> {
                 );
             }
 
+            const jumpToBottom =
+                this.state.atEndOfLiveTimeline === false ? (
+                    <JumpToBottomButton highlight={false} onScrollToBottomClick={this.jumpToLiveTimeline} />
+                ) : undefined;
+
             timeline = (
                 <>
                     <FileDropTarget parent={this.card.current} onFileDrop={this.onFileDrop} room={this.props.room} />
+                    {jumpToBottom}
                     <TimelinePanel
                         key={this.state.thread.id}
                         ref={this.timelinePanel}
@@ -410,6 +438,7 @@ export default class ThreadView extends React.Component<IProps, IState> {
                         eventId={this.props.initialEvent?.getId()}
                         highlightedEventId={highlightedEventId}
                         eventScrollIntoView={this.props.initialEventScrollIntoView}
+                        onScroll={this.onMessageListScroll}
                         onEventScrolledIntoView={this.resetJumpToEvent}
                     />
                 </>
