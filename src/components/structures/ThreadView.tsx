@@ -12,6 +12,7 @@ import {
     THREAD_RELATION_TYPE,
     ThreadEvent,
     type Room,
+    NotificationCountType,
     RoomEvent,
     type IEventRelation,
     type MatrixEvent,
@@ -35,6 +36,7 @@ import EditorStateTransfer from "../../utils/EditorStateTransfer";
 import RoomContext, { TimelineRenderingType } from "../../contexts/RoomContext";
 import ContentMessages from "../../ContentMessages";
 import UploadBar from "./UploadBar";
+import JumpToBottomButton from "../views/rooms/JumpToBottomButton";
 import { _t } from "../../languageHandler";
 import ThreadListContextMenu from "../views/context_menus/ThreadListContextMenu";
 import RightPanelStore from "../../stores/right-panel/RightPanelStore";
@@ -70,6 +72,7 @@ interface IState {
     layout: Layout;
     editState?: EditorStateTransfer;
     replyToEvent?: MatrixEvent;
+    atEndOfLiveTimeline: boolean;
     narrow: boolean;
 }
 
@@ -93,6 +96,7 @@ export default class ThreadView extends React.Component<IProps, IState> {
 
         this.state = {
             layout: SettingsStore.getValue("layout"),
+            atEndOfLiveTimeline: true,
             narrow: false,
             thread,
             lastReply: thread?.lastReply((ev: MatrixEvent) => {
@@ -267,6 +271,7 @@ export default class ThreadView extends React.Component<IProps, IState> {
         thread.emit(ThreadEvent.ViewThread);
         this.updateThreadRelation();
         this.timelinePanel.current?.refreshTimeline(this.props.initialEvent?.getId());
+        this.updateAtEndOfLiveTimeline();
     }
 
     private setupThreadListeners(thread?: Thread | undefined, oldThread?: Thread | undefined): void {
@@ -300,6 +305,24 @@ export default class ThreadView extends React.Component<IProps, IState> {
 
     private onMeasurement = (narrow: boolean): void => {
         this.setState({ narrow });
+    };
+
+    private updateAtEndOfLiveTimeline = (): void => {
+        const atEndOfLiveTimeline = this.timelinePanel.current?.isAtEndOfLiveTimeline();
+        if (atEndOfLiveTimeline !== undefined && atEndOfLiveTimeline !== this.state.atEndOfLiveTimeline) {
+            this.setState({ atEndOfLiveTimeline });
+        }
+    };
+
+    private onMessageListScroll = (): void => {
+        this.updateAtEndOfLiveTimeline();
+    };
+
+    private jumpToLiveTimeline = (ev: ButtonEvent): void => {
+        PosthogTrackers.trackInteraction("WebThreadViewJumpToBottomButton", ev);
+        this.timelinePanel.current?.jumpToLiveTimeline();
+        dis.fire(Action.FocusSendMessageComposer);
+        this.setState({ atEndOfLiveTimeline: true });
     };
 
     private onKeyDown = (ev: KeyboardEvent): void => {
@@ -375,6 +398,16 @@ export default class ThreadView extends React.Component<IProps, IState> {
 
         const threadRelation = this.threadRelation;
 
+        let jumpToBottom: JSX.Element | undefined;
+        if (this.state.atEndOfLiveTimeline === false) {
+            jumpToBottom = (
+                <JumpToBottomButton
+                    highlight={this.props.room.getUnreadNotificationCount(NotificationCountType.Highlight) > 0}
+                    onScrollToBottomClick={this.jumpToLiveTimeline}
+                />
+            );
+        }
+
         let timeline: JSX.Element | null;
         if (this.state.thread) {
             if (this.props.initialEvent && this.props.initialEvent.getRoomId() !== this.state.thread.roomId) {
@@ -411,6 +444,7 @@ export default class ThreadView extends React.Component<IProps, IState> {
                         highlightedEventId={highlightedEventId}
                         eventScrollIntoView={this.props.initialEventScrollIntoView}
                         onEventScrolledIntoView={this.resetJumpToEvent}
+                        onScroll={this.onMessageListScroll}
                     />
                 </>
             );
@@ -444,7 +478,10 @@ export default class ThreadView extends React.Component<IProps, IState> {
                     }}
                 >
                     <Measured sensor={this.card} onMeasurement={this.onMeasurement} />
-                    <div className="mx_ThreadView_timelinePanelWrapper">{timeline}</div>
+                    <div className="mx_ThreadView_timelinePanelWrapper">
+                        {jumpToBottom}
+                        {timeline}
+                    </div>
 
                     {ContentMessages.sharedInstance().getCurrentUploads(threadRelation).length > 0 && (
                         <UploadBar room={this.props.room} relation={threadRelation} />
